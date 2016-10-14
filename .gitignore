@@ -1,0 +1,8 @@
+#ignore any temporary files that emacs makes
+*~
+
+#Only want basic python files added
+*.pyc
+
+#Ignore any data files that have been marked for testing only
+*.test
