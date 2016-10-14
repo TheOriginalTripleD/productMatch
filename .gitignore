@@ -6,3 +6,10 @@
 
 #Ignore any data files that have been marked for testing only
 *.test
+
+#ignore the virtualenv stuff
+./bin
+./include
+./lib
+./share
+pip-selfcheck.json
