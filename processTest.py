@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import sys, argparse, os, time, subprocess
 
 parser = argparse.ArgumentParser(description = "Tests the different thread counts to find the optimum one for your machine")
@@ -20,7 +22,7 @@ for threadCount in range(arguments.l, arguments.u + 1):
     print("Processing...", end="\r")
     #sys.stdout = nullPointer
     start = time.time()
-    subprocess.run(["{}/productMatch.py".format(os.getcwd()), '-t', str(threadCount), "something"])
+    subprocess.run(["{}/productMatch.py".format(os.getcwd()), '-l', 'data/listings.txt.test', '-t', str(threadCount), '-a', '0', "something"])
     end = time.time()
     #sys.stdout = standardOutput
     print("Total Time: {}\n".format(end - start))   

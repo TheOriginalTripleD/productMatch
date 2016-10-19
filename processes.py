@@ -1,45 +1,44 @@
-import matching
 from multiprocessing import Queue, JoinableQueue, Value, Process
-
-listings = JoinableQueue()
-productMatches = Queue()
 
 processes = []
 
-listingCount = Value('i', 0)
-
-def matchListingsToProducts(productMatcher, listingCount):
+def matchListingsToProducts(productMatcher, listingQueue, matchQueue, listingsProcessed):
     
     while True:
-        listingNumber, listing = listings.get()
-        print("Processing {} of {}".format(listingNumber, listingCount.value), end="\r")
+        listing = listingQueue.get()
+
+        if listing is None:
+            listingQueue.task_done()
+            break
+
+#        print("processing {}".format(listingNumber), end="\r")
+#        print("Processing {} of {}".format(listingNumber, listingTotal.value), end="\r")
+
+        matchingProductIndex = productMatcher.findMatchingProduct(listing)
         
-        pmatchingProductIndex = productMatcher.findMatchingProduct(listing)
         # Returns -1 if no match is found
-        if matchingProductIndex > 0:
-            productMatches.put((listing, matchingProductIndex))
-            
-        listings.task_done()
+        if matchingProductIndex >= 0:
+            matchQueue.put((listing, matchingProductIndex))
 
-def waitForProcessesToFinish():
-    global listings
+        listingsProcessed.value += 1
+        listingQueue.task_done()
 
-    listings.join()
-    print("")
-        
-def stopProcesses():
-    global listingCount
+    return
+
+def stopProcesses(listingQueue):
+    global processes
     
     for process in processes:
-        process.terminate()
+        listingQueue.put(None)
         
-def createProcessPool(processCount, products, productToListingMap, requiredFields, desiredFields, accuracy):
-    global processes, listingCount
+    listingQueue.join()
+    
+    for process in processes:
+        process.join()
+        
+def createProcesses(processCount, masterMatchingObject, listingQueue, matchQueue, listingsProcessed):
     
     for count in range(0, processCount):
-        productMatcher = matching.Matching(products, productToListingMap, requiredFields, desiredFields, accuracy)
-
-        processes.append(Process(name="process-{}".format(count),daemon=True, target=matchListingsToProducts, args=(productMatcher,listingCount)))
+        processes.append(Process(name="process-{}".format(count),daemon=True, target=matchListingsToProducts, args=(masterMatchingObject.copy(), listingQueue, matchQueue, listingsProcessed)))
         
         processes[-1].start()
-

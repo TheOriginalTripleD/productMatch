@@ -2,7 +2,7 @@
 
 import argparse
 import sys
-import files, processes
+import model, view
 
 parser = argparse.ArgumentParser(description = "Match a JSON file of product listings to a JSON file of products", prog='productMatch')
 
@@ -25,29 +25,32 @@ except FileNotFoundError:
 if arguments.t <= 0:
     sys.exit("productMatch: error: Processor count must be greater than or equal to 1")
 
-#A listing MUST match these fields correctly    
-requiredFields = ["manufacturer", "model"]
+model = model.Model(arguments.t, arguments.p, arguments.l, arguments.output, arguments.a)
 
-#Optional matching. Used to break ties between multiple products
-desiredFields = ["family"]
+view = view.View(model)
 
-productToListingMap = {"model": "title", "family":"title", "manufacturer":"manufacturer"}
+view.start()
 
+
+'''
 products = files.getProductList(arguments.p)
 
 print("Spawning Processes")
 
-processes.createProcessPool(arguments.t, products, productToListingMap, requiredFields, desiredFields, arguments.a)
+listingQueue, matchQueue, listingTotal = processes.createProcessPool(arguments.t, products, arguments.a)
 
 print("Loading Listings")
 
-files.loadListings(arguments.l, processes.listings, processes.listingCount)
+files.loadListings(arguments.l, listingQueue, listingTotal)
 
-processes.waitForProcessesToFinish()
+processes.waitForProcessesToFinish(listingQueue)
 processes.stopProcesses()
+
+#print("Empty") if matchQueue.empty() else print("has something")
 
 print("Writing File")
 
-files.printProductMatches(processes.productMatches, products, arguments.output)
+files.printProductMatches(matchQueue, products, arguments.output)
 
 print("Finished")
+'''

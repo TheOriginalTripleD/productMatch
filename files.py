@@ -1,7 +1,8 @@
-import json
+import json, queue, multiprocessing
 
 def getProductList(productFile):
     products = []
+
     for lineNumber, line in enumerate(productFile):
         try:
             products.append(json.loads(line))
@@ -10,26 +11,32 @@ def getProductList(productFile):
             continue
     return products
 
-def loadListings(listingFile, listingQueue, listingCount):
-    for lineNumber, line in enumerate(listingFile):
+def getListings(listingFileHandle):
+    listingQueue = multiprocessing.JoinableQueue()
+    totalListings = 0
+    
+    for lineNumber, line in enumerate(listingFileHandle):
         try:
-            listingQueue.put((lineNumber + 1, json.loads(line)))
-            listingCount.value += 1
+            listingQueue.put(json.loads(line))
+            totalListings += 1
         except ValueError:
             print("Incorrect JSON Formatting on line {}: '{}'".format(lineNumber, line))
             continue
+        
+    return listingQueue, totalListings
 
-def sortListingsByProduct(productQueue, products):
+def sortListingsByProduct(matchQueue, products):
     sortedListings = {product["product_name"]: [] for product in products}
     
-    while not productQueue.empty():
-        listing, productIndex = productQueue.get()
-        sortedListings[products[productIndex]["product_name"]].append(listing)
-    return sortedListings
+    while True:
+        try:
+            listing, productIndex = matchQueue.get_nowait()
+            sortedListings[products[productIndex]["product_name"]].append(listing)
+        except queue.Empty:
+            break
 
-    
-def printProductMatches(productQueue, products, outputFile):
-    sortedListings = sortListingsByProduct(productQueue, products)
+    return [{"product_name": product, "listing": sortedListings[product]} for product in sortedListings]
 
-    for product_name in sortedListings:
-        outputFile.write("{{\"product_name\": {}, \"listing\": [{}]}}\n".format(product_name, sortedListings[product_name]))
+def printProductMatches(productMatches, outputFile):
+    for productMatch in [{"product_name": product, "listing":productMatches[product]} for product in productMatches]:
+        outputFile.write(json.dumps(productMatch) + "\n")

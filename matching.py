@@ -20,25 +20,99 @@ def createProductTree(products, *fields):
                 tree[fieldTitle][product[fieldTitle].lower()] = [index]
     return tree
 
-
 class Matching():
-    def __init__(self, products, productToListingMap, requiredFields, desiredFields, accuracy):
+    requiredFields = ["manufacturer", "model"]
+    desiredFields = ["family"]
+    productToListingMap = {"model": "title",
+                           "family":"title",
+                           "manufacturer":"manufacturer"}
+    
+    def __init__(self, products, accuracy):
         self.products = products
-        self.productToListingMap = productToListingMap
-        self.productTree = createProductTree(products, *(requiredFields + desiredFields))
-
-        self.requiredFields = self.fieldsSortedByMemberCount(requiredFields)
-        self.desiredFields = self.fieldsSortedByMemberCount(desiredFields)
-
         self.accuracy = accuracy
-  
-    def fieldsSortedByMemberCount(self, fields):
-        return sorted(fields, key=lambda field: len(self.productTree[field]))
+        
+        self.productTree = createProductTree(products, *(self.requiredFields + self.desiredFields))
 
+        self.requiredFields = self.fieldsSortedByMemberCount(self.requiredFields)
+        self.desiredFields = self.fieldsSortedByMemberCount(self.desiredFields)
+
+        self.regularExpression = self.getRegularExpression(accuracy)
+
+        #Listings may use '_', '-', or "" in place of a blank space, so we search for all 3
+        self.separators = [" "]
+        if accuracy < 2: 
+            self.separators.append("_")
+        if accuracy < 1:
+            self.separators.append("-")
+            self.separators.append("")
+
+
+    def copy(self):
+        return Matching(self.products, self.accuracy)
+        
+    def fieldsSortedByMemberCount(self, fieldTitle):
+        return sorted(fieldTitle, key=lambda fieldTitle: len(self.productTree[fieldTitle]))
+
+    def getRegularExpression(self, accuracy):
+        if accuracy >= 2:
+            return "(^| ){}($| )"
+        elif accuracy == 1:
+            return "(^| |_){}($| |_)"
+        else:
+            return "(^| |_|-|,){}($| |_|-|,)"
+
+    def splitValueBySeparators(self, partition, separators):
+        if not separators:
+            return [partition]
+
+        separator = separators.pop()
+
+        #'split' cannot handle an empty separator, so we create a special case
+        subPartitions = partition.split(separator) if separator else [partition]
+
+        listOfPartitions = list()
+        
+        for partition in subPartitions:
+            listOfPartitions += self.splitValueBySeparators(partition, separators)
+
+        return listOfPartitions
+
+    def getPartitionPermutations(self, partitions, valuePermutation=""):
+        if len(partitions) == 1:
+            return [partitions.pop() + valuePermutation]
+
+        partition = partitions.pop()
+        permutationsList = list()
+        
+        for separator in self.separators:
+            permutationsList += self.getPartitionPermutations(list(partitions), separator + partition + valuePermutation)
+
+        return permutationsList
+            
+    def allFieldValuePermutations(self, fieldValue):
+        #Returns a set of all the possible permutations a fieldValue
+        #could have based on its separators. e.g. ["EX-H20G", "EX H20G",
+        #"EX_H20G", etc,]
+        partitions = self.splitValueBySeparators(fieldValue, list(self.separators))
+        return self.getPartitionPermutations(partitions)
+        
+        
     def fieldValueContainsString(self, fieldValue, searchString):
         if fieldValue == "null":
             return False
-        return re.search("(^| ){}($| )".format(searchString.lower()), fieldValue.lower())
+
+        test =  self.allFieldValuePermutations(searchString)
+        
+        for permutation in test:
+#            print("RE: {:20} String: {}".format(self.regularExpression.format(permutation.lower()),
+#                                                fieldValue.lower()))
+            match = re.search(self.regularExpression.format(permutation.lower()),
+                              fieldValue.lower())
+            if match:
+                break
+
+        return match
+                
 
     def matchingProducts(self, fieldTitle, listing):
         productIndexSet = set()
@@ -93,7 +167,9 @@ class Matching():
         matchingProducts = self.productsWithRequiredFields(list(self.requiredFields), listing)
         
         if matchingProducts:
+            #print("has required fields")
             chosenProductIndex = self.findBestMatch(matchingProducts, listing)
+            #print("product index{}".format(chosenProductIndex))
         else:
             chosenProductIndex = -1
             
