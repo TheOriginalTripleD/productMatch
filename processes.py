@@ -2,7 +2,7 @@ from multiprocessing import Queue, JoinableQueue, Value, Process
 
 processes = []
 
-def matchListingsToProducts(productMatcher, listingQueue, matchQueue, listingsProcessed):
+def matchListingsToProducts(productMatcher, listingQueue, matchQueue, listingsProcessed, matches, ambiguous):
     
     while True:
         listing = listingQueue.get()
@@ -11,19 +11,17 @@ def matchListingsToProducts(productMatcher, listingQueue, matchQueue, listingsPr
             listingQueue.task_done()
             break
 
-#        print("processing {}".format(listingNumber), end="\r")
-#        print("Processing {} of {}".format(listingNumber, listingTotal.value), end="\r")
-
         matchingProductIndex = productMatcher.findMatchingProduct(listing)
         
-        # Returns -1 if no match is found
+        # -2 = no match, -1 = ambiguous 
         if matchingProductIndex >= 0:
+            matches.value += 1
             matchQueue.put((listing, matchingProductIndex))
+        elif matchingProductIndex == -1:
+            ambiguous.value += 1
 
         listingsProcessed.value += 1
         listingQueue.task_done()
-
-    return
 
 def stopProcesses(listingQueue):
     global processes
@@ -36,9 +34,9 @@ def stopProcesses(listingQueue):
     for process in processes:
         process.join()
         
-def createProcesses(processCount, masterMatchingObject, listingQueue, matchQueue, listingsProcessed):
+def createProcesses(processCount, masterMatchingObject, listingQueue, matchQueue, listingsProcessed, matches, ambiguous):
     
     for count in range(0, processCount):
-        processes.append(Process(name="process-{}".format(count),daemon=True, target=matchListingsToProducts, args=(masterMatchingObject.copy(), listingQueue, matchQueue, listingsProcessed)))
+        processes.append(Process(name="process-{}".format(count),daemon=True, target=matchListingsToProducts, args=(masterMatchingObject.copy(), listingQueue, matchQueue, listingsProcessed, matches, ambiguous)))
         
         processes[-1].start()

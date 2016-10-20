@@ -24,14 +24,11 @@ def monitorModel(listingQueue, stopProcesses, matchQueue, model):
 
     #1. Wait for the listing queue to empty, and for the processes to indicate 'task_done'
     listingQueue.join()
-
     #2. Stop the processes.
     stopProcesses(listingQueue)
-
     #3. Wait for the matchingQueue to be empty and have 'task_done'ed every listing. Next flag it to stop the loop
     matchQueue.join()
     continueOrganizingMatches = False
-
     #4. Toggle the flag so the GUI can see we are finished.
     model.currentlyProcessing = False
 

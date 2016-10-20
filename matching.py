@@ -27,39 +27,24 @@ class Matching():
                            "family":"title",
                            "manufacturer":"manufacturer"}
     
-    def __init__(self, products, accuracy):
+    def __init__(self, products):
         self.products = products
-        self.accuracy = accuracy
         
         self.productTree = createProductTree(products, *(self.requiredFields + self.desiredFields))
 
         self.requiredFields = self.fieldsSortedByMemberCount(self.requiredFields)
         self.desiredFields = self.fieldsSortedByMemberCount(self.desiredFields)
 
-        self.regularExpression = self.getRegularExpression(accuracy)
+        self.regularExpression = "(^| |_|-|,){}($| |_|-|,)"
 
         #Listings may use '_', '-', or "" in place of a blank space, so we search for all 3
-        self.separators = [" "]
-        if accuracy < 2: 
-            self.separators.append("_")
-        if accuracy < 1:
-            self.separators.append("-")
-            self.separators.append("")
-
+        self.separators = [" ", "_", "-", ""]
 
     def copy(self):
-        return Matching(self.products, self.accuracy)
+        return Matching(self.products)
         
     def fieldsSortedByMemberCount(self, fieldTitle):
         return sorted(fieldTitle, key=lambda fieldTitle: len(self.productTree[fieldTitle]))
-
-    def getRegularExpression(self, accuracy):
-        if accuracy >= 2:
-            return "(^| ){}($| )"
-        elif accuracy == 1:
-            return "(^| |_){}($| |_)"
-        else:
-            return "(^| |_|-|,){}($| |_|-|,)"
 
     def splitValueBySeparators(self, partition, separators):
         if not separators:
@@ -104,8 +89,6 @@ class Matching():
         test =  self.allFieldValuePermutations(searchString)
         
         for permutation in test:
-#            print("RE: {:20} String: {}".format(self.regularExpression.format(permutation.lower()),
-#                                                fieldValue.lower()))
             match = re.search(self.regularExpression.format(permutation.lower()),
                               fieldValue.lower())
             if match:
@@ -167,10 +150,8 @@ class Matching():
         matchingProducts = self.productsWithRequiredFields(list(self.requiredFields), listing)
         
         if matchingProducts:
-            #print("has required fields")
             chosenProductIndex = self.findBestMatch(matchingProducts, listing)
-            #print("product index{}".format(chosenProductIndex))
         else:
-            chosenProductIndex = -1
+            chosenProductIndex = -2
             
         return chosenProductIndex
