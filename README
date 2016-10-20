@@ -1,0 +1,23 @@
+Requires Python 3.3.6 or higher.
+
+To run productMatch:
+
+./productMatch.py [-l listingFile] [-p productFile] [-t processors] outputFile
+
+The only required argument is a file for output, although I recommend setting
+the number of processors your machine has in order to take advantage of
+multithreading (the default is 2).
+
+By default it will read "data/listings.txt" for the listings and
+"data/products.txt" for the products. These can be overridden with the "-l"
+and "-p" flags, respectively.
+
+There also exists a second script for testing purposes:
+
+./processTest.py [-l lower] [-u upper]
+
+which will run "productMatch" with variant numbers of processors in order for
+you too see which number yields an optimum time. For example, to test the
+program with 2 through 10 processors:
+
+./processTest.py -l 2 -u 10
