@@ -1,18 +1,31 @@
 Requires Python 3.3.6 or higher.
 
-To run productMatch:
+To simply run productMatch all you need to type is:
 
-./productMatch.py [-l listingFile] [-p productFile] [-t processors] outputFile
+   ./productMatch.py outputFile
 
-The only required argument is a file for output, although I recommend setting
-the number of processors your machine has in order to take advantage of
-multithreading (the default is 2).
+Where "outputFile" is the file you are going to store your JSON output in.
+There are, however, a few more options available to you:
 
-By default it will read "data/listings.txt" for the listings and
-"data/products.txt" for the products. These can be overridden with the "-l"
-and "-p" flags, respectively.
+      -l pathToListingFile : Allows you to choose which file you will get the
+                             listing data from. Default is "data/listings.txt"
+                             
+      -p pathToProductsFile : Choose a specific file to get the product data
+                              from. Default is "data/products.txt"
 
-There also exists a second script for testing purposes:
+      -t processes : Number of processes that the program should spawn to
+                     handle to data. Generally works best if you choose the
+                     number of processors on your CPU, as numbers higher than
+                     this show increasingly diminishing returns. Default is 2.
+
+After the program is finished running, it will print out to following:
+
+      Matches : Listings were matched with a product
+      Ambiguous : Listings that matched with two or more products.
+      No Match : Listings that did not match any product
+
+In addition to productMatch.py, there is a second script, processTest.py, which
+can be used for testing purposes:
 
 ./processTest.py [-l lower] [-u upper]
 
