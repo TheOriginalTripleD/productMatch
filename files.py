@@ -35,7 +35,7 @@ def sortListingsByProduct(matchQueue, products):
         except queue.Empty:
             break
 
-    return [{"product_name": product, "listing": sortedListings[product]} for product in sortedListings]
+    return [{"product_name": product, "listings": sortedListings[product]} for product in sortedListings]
 
 def printProductMatches(productMatches, outputFile):
     for productMatch in [{"product_name": product, "listing":productMatches[product]} for product in productMatches]:
